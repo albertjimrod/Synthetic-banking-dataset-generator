@@ -1,0 +1,4 @@
+name: wealthreader_conda
+channels:
+  - defaults
+prefix: /home/ion/miniconda4/envs/wealthreader_conda
