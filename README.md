@@ -8,16 +8,20 @@ A two-script pipeline to generate large-scale synthetic banking datasets based o
 
 The pipeline consists of two scripts that work together:
 
-```
-generate_1M.sh  ──calls──►  generator_wealthreader_v6_2.py
-                                        │
-                                        ▼
-                              data/wealthreader_synthetic_customers_*.csv
-                                        │
-                generate_1M.sh ◄────────┘
-                      │
-                      ▼  (merge + cleanup)
-                data/wealthreader_combined.csv
+```mermaid
+flowchart LR
+    A["🔧 generate_1M.sh
+Orquestador"] -->|"llama × batches
+3 escenarios · semillas distintas"| B["🐍 generator_wealthreader_v6_2.py
+Motor de datos"]
+    B -->|"escribe CSV parcial"| C["📁 data/
+wealthreader_synthetic_
+customers_*.csv"]
+    C -->|"lee todos"| A
+    A -->|"merge + asigna customer_id
+añade columna escenario
+elimina parciales"| D["✅ data/wealthreader_combined.csv
+Dataset final"]
 ```
 
 `generate_1M.sh` is the orchestrator. It drives the full generation process: it calls the Python generator repeatedly across three economic scenarios and batch sizes, then merges all partial CSV outputs into a single final file.
@@ -78,6 +82,47 @@ The target variable `default_12m` is computed by applying multiplicative risk fa
 | `normal` | 30% | 50% | 20% | 2% / 15% / 40% |
 | `crisis` | 15% | 45% | 40% | 10% / 35% / 65% |
 | `boom`   | 50% | 40% | 10% | 1% / 5% / 15% |
+
+**Scenario composition in a 1M dataset:**
+
+```mermaid
+flowchart TD
+    START["🏦 1.000.000 clientes sintéticos"] --> N
+    START --> C
+    START --> B
+
+    subgraph N["📊 Escenario normal — 333K"]
+        N1["Bajo riesgo 30%
+default ~2%"]
+        N2["Riesgo medio 50%
+default ~15%"]
+        N3["Alto riesgo 20%
+default ~40%"]
+    end
+
+    subgraph C["📉 Escenario crisis — 333K"]
+        C1["Bajo riesgo 15%
+default ~10%"]
+        C2["Riesgo medio 45%
+default ~35%"]
+        C3["Alto riesgo 40%
+default ~65%"]
+    end
+
+    subgraph B["📈 Escenario boom — 333K"]
+        B1["Bajo riesgo 50%
+default ~1%"]
+        B2["Riesgo medio 40%
+default ~5%"]
+        B3["Alto riesgo 10%
+default ~15%"]
+    end
+
+    N --> MERGE["🔀 merge · columna escenario
+wealthreader_combined.csv"]
+    C --> MERGE
+    B --> MERGE
+```
 
 **CLI usage:**
 
